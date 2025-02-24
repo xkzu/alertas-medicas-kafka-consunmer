@@ -14,6 +14,9 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Log4j2
 @Service
 public class KafkaConsumerService {
@@ -22,6 +25,8 @@ public class KafkaConsumerService {
 
     @Value("${api.measurement:}")
     private String domain;
+
+    private final List<MeasurementDTO> measurements = new ArrayList<>();
 
     @Autowired
     public KafkaConsumerService(RestTemplate restTemplate) {
@@ -34,12 +39,19 @@ public class KafkaConsumerService {
         saveAnomaly(message);
     }
 
+    public List<MeasurementDTO> getMeasurementsInQueue() {
+        List<MeasurementDTO> responseMeasurements = new ArrayList<>(measurements);
+        measurements.clear();
+        return responseMeasurements;
+    }
+
     private void saveAnomaly(String message) {
         log.info("Guardando anomalia en bd: {}", message);
         MeasurementDTO measurementDTO = MessageParser.parseMeasurement(message);
         log.info("Parseando message a measurement: {}", measurementDTO);
         MeasurementDTO measurementSaved = saveMeasurement(measurementDTO);
         log.info("Anomalia guardada: {}", measurementSaved);
+        measurements.add(measurementSaved);
     }
 
     private MeasurementDTO saveMeasurement(MeasurementDTO measurementDTO) {
